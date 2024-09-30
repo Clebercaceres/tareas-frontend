@@ -9,38 +9,83 @@ const TodoProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = React.useState(1);
   const todosPerPage = 10;
 
+  // Agregar nueva tarea
   const addTodo = (newTodo) => {
     setTodos([...todos, newTodo]);
   };
 
-  const editTodo = (id, updatedText) => {
+  // Editar tarea existente (actualizando todos los campos del todo)
+  const editTodo = (id, updatedTodo) => {
     const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, text: updatedText } : todo
+      todo.id === id ? { ...todo, ...updatedTodo } : todo
     );
     setTodos(updatedTodos);
   };
 
+  // Eliminar tarea por id
   const deleteTodo = (id) => {
     setTodos(todos.filter(todo => todo.id !== id));
   };
 
+  // // Add new task
+  // const addTodo = async (newTodo) => {
+  //   try {
+  //     const response = await createTask(newTodo);
+  //     setTodos([...todos, response.data]);
+  //   } catch (error) {
+  //     console.error('Error creating task:', error);
+  //   }
+  // };
+
+  // const createTask = async (newTask) => {
+  //   const response = await api.createTask(newTask);
+  //   if (response.message === "Tarea creada") {
+  //     setTodos(prevTodos => [...prevTodos, response.task]); // Update the list
+  //   }
+  // };
+
+  // // Edit task
+  // const editTodo = async (id, updatedTodo) => {
+  //   try {
+  //     const response = await editTask(id, updatedTodo);
+  //     setTodos(todos.map((todo) => (todo.id === id ? response.data : todo)));
+  //   } catch (error) {
+  //     console.error('Error editing task:', error);
+  //   }
+  // };
+
+  // // Delete task
+  // const deleteTodo = async (id) => {
+  //   try {
+  //     await deleteTask(id);
+  //     setTodos(todos.filter((todo) => todo.id !== id));
+  //   } catch (error) {
+  //     console.error('Error deleting task:', error);
+  //   }
+  // };
+
+
+  // Obtener las tareas paginadas
   const paginatedTodos = () => {
     const startIndex = (currentPage - 1) * todosPerPage;
     return todos.slice(startIndex, startIndex + todosPerPage);
   };
 
+  // Navegar a la siguiente página
   const nextPage = () => {
     if (currentPage * todosPerPage < todos.length) {
       setCurrentPage(currentPage + 1);
     }
   };
 
+  // Navegar a la página anterior
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
+  // Reordenar tareas (para drag-and-drop)
   const reorderTodos = (fromId, toId) => {
     const fromIndex = todos.findIndex(todo => todo.id === fromId);
     const toIndex = todos.findIndex(todo => todo.id === toId);
@@ -53,6 +98,7 @@ const TodoProvider = ({ children }) => {
     }
   };
 
+  // Cargar datos de usuario desde localStorage
   React.useEffect(() => {
     const storedUserData = localStorage.getItem('userData');
     if (storedUserData) {
@@ -60,17 +106,21 @@ const TodoProvider = ({ children }) => {
     }
   }, []);
 
+  // Cerrar sesión
   const logout = () => {
     setUserData(null);
     localStorage.removeItem('userData');
   };
+
+
 
   return (
     <TodoContext.Provider
       value={{
         userData,
         setUserData,
-        todos: paginatedTodos(),
+        todos,
+        paginatedTodos: paginatedTodos(),
         addTodo,
         editTodo,
         deleteTodo,
@@ -80,7 +130,8 @@ const TodoProvider = ({ children }) => {
         reorderTodos,
         totalTodos: todos.length,
         logout
-      }}>
+      }}
+    >
       {children}
     </TodoContext.Provider>
   );

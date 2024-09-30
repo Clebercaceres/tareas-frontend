@@ -1,11 +1,12 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React from 'react';
 import { TodoContext } from './context/TodoContext';
 import { TextField, Button, Grid } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
+import { notification } from 'antd'; // Importamos la notificación de Ant Design
 
 const TodoForm = ({ currentTodo, setCurrentTodo }) => {
-    const { addTodo, editTodo } = useContext(TodoContext);
-    const [todo, setTodo] = useState({
+    const { addTodo, editTodo } = React.useContext(TodoContext);
+    const [todo, setTodo] = React.useState({
         text: '',
         description: '',
         category: '',
@@ -13,7 +14,28 @@ const TodoForm = ({ currentTodo, setCurrentTodo }) => {
         deadline: ''
     });
 
-    useEffect(() => {
+    // Notificación de éxito
+    const openSuccessNotification = (message) => {
+        notification.success({
+            message: 'Operación Exitosa',
+            description: message,
+            placement: 'topRight',
+            duration: 3, // Duración de la notificación en segundos
+        });
+    };
+
+    // Notificación de error
+    const openErrorNotification = (message) => {
+        notification.error({
+            message: 'Error',
+            description: message,
+            placement: 'topRight',
+            duration: 3,
+        });
+    };
+
+    // Efecto para cargar el "todo" actual en el formulario
+    React.useEffect(() => {
         if (currentTodo) {
             setTodo({
                 text: currentTodo.text,
@@ -29,14 +51,33 @@ const TodoForm = ({ currentTodo, setCurrentTodo }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (currentTodo) {
-            editTodo(currentTodo.id, todo);
-        } else {
-            const newTodo = { id: uuidv4(), ...todo };
-            addTodo(newTodo);
+
+        // Validar campos vacíos
+        if (!todo.text || !todo.description || !todo.category || !todo.priority || !todo.deadline) {
+            openErrorNotification('Por favor, completa todos los campos');
+            return;
         }
-        setCurrentTodo(null);
-        setTodo({ text: '', description: '', category: '', priority: '', deadline: '' });
+
+        try {
+            if (currentTodo) {
+                // Editar tarea
+                editTodo(currentTodo.id, todo);
+                openSuccessNotification('La tarea ha sido editada con éxito'); // Mostrar notificación de éxito
+            } else {
+                // Agregar nueva tarea
+                const newTodo = { id: uuidv4(), ...todo };
+                addTodo(newTodo);
+                openSuccessNotification('La nueva tarea ha sido añadida con éxito');
+            }
+
+            // Limpiar el formulario después de agregar o editar
+            setCurrentTodo(null);
+            setTodo({ text: '', description: '', category: '', priority: '', deadline: '' });
+
+        } catch (error) {
+            openErrorNotification('Hubo un error al guardar la tarea. Intenta nuevamente.');
+            console.error('Error al guardar la tarea:', error);
+        }
     };
 
     return (

@@ -1,13 +1,15 @@
 import React from 'react';
 import { TodoContext } from './context/TodoContext';
-import { Container, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Typography, Button } from '@mui/material';
+import { Container, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Typography, Button, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import EditTodoModal from './ModalEdit';
 import ConfirmationModal from './ModalConfirm';
+import { notification } from 'antd';
 
 const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
     const {
@@ -23,13 +25,13 @@ const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
                 opacity: isDragging ? 0.5 : 1,
                 transition: transition || 'transform 250ms ease',
                 transform: CSS.Transform?.toString(transform),
-                backgroundColor: isDragging ? '#f0f0f0' : 'white',
+                backgroundColor: isDragging ? '#424242' : 'inherit',
                 cursor: isDragging ? 'grabbing' : 'grab',
             }}
         >
             <ListItemText
-                primary={todo.text}
-                secondary={`Descripción: ${todo.description} | Categoría: ${todo.category} | Prioridad: ${todo.priority} | Fecha límite: ${todo.deadline}`}
+                primary={todo.text || 'Sin título'}
+                secondary={`Descripción: ${todo.description || 'No disponible'} | Categoría: ${todo.category || 'No disponible'} | Prioridad: ${todo.priority || 'No disponible'} | Fecha límite: ${todo.deadline || 'No disponible'}`}
             />
             <ListItemSecondaryAction>
                 <IconButton edge="end" aria-label="edit" onClick={() => handleEdit(todo)}>
@@ -43,14 +45,23 @@ const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
     );
 };
 
-const TodoList = () => {
-    const { todos, deleteTodo, reorderTodos, nextPage, prevPage, totalTodos, currentPage } = React.useContext(TodoContext);
-    const [currentTodo, setCurrentTodo] = React.useState(null);
+const TodoList = ({ setCurrentTodo }) => {
+    const { paginatedTodos, deleteTodo, reorderTodos, nextPage, prevPage, totalTodos, currentPage, setCurrentPage } = React.useContext(TodoContext);
     const [isDeleteModalOpen, setDeleteModalOpen] = React.useState(false);
     const [todoToDelete, setTodoToDelete] = React.useState(null);
 
+    const openDeleteNotification = () => {
+        notification.success({
+            message: 'Tarea Eliminada',
+            description: 'La tarea ha sido eliminada con éxito',
+            placement: 'topRight',
+            duration: 3,
+        });
+    };
+
     const handleDeleteConfirm = () => {
         deleteTodo(todoToDelete.id);
+        openDeleteNotification();
         setDeleteModalOpen(false);
     };
 
@@ -64,13 +75,10 @@ const TodoList = () => {
     return (
         <Container maxWidth="sm" style={{ marginTop: '20px' }}>
             <Typography variant="h5" align="center" gutterBottom>Lista de Tareas</Typography>
-            <DndContext
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-            >
-                <SortableContext items={todos?.map(todo => todo?.id)} strategy={verticalListSortingStrategy}>
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={paginatedTodos?.map(todo => todo?.id)} strategy={verticalListSortingStrategy}>
                     <List>
-                        {todos?.map((todo) => (
+                        {paginatedTodos?.map((todo) => (
                             <SortableItem
                                 key={todo.id}
                                 todo={todo}
@@ -78,26 +86,40 @@ const TodoList = () => {
                                     setTodoToDelete(todo);
                                     setDeleteModalOpen(true);
                                 }}
-                                handleEdit={setCurrentTodo}
+                                handleEdit={() => setCurrentTodo(todo)} 
                             />
                         ))}
                     </List>
                 </SortableContext>
             </DndContext>
-            <div>
-                <Button onClick={prevPage} variant="contained" color="secondary" disabled={currentPage === 1}>Anterior</Button>
-                <Button onClick={nextPage} variant="contained" color="secondary" disabled={totalTodos <= currentPage * 10}>Siguiente</Button>
-            </div>
+
+            {totalTodos > 10 && (
+                <Box display="flex" alignItems="center" justifyContent="space-between" mt={2}>
+                    <IconButton onClick={prevPage} disabled={currentPage === 1}>
+                        <ArrowBackIcon />
+                    </IconButton>
+                    <Box>
+                        {Array.from({ length: Math.ceil(totalTodos / 10) }, (_, index) => (
+                            <Button
+                                key={index + 1}
+                                variant={currentPage === index + 1 ? 'contained' : 'outlined'}
+                                color="primary"
+                                onClick={() => setCurrentPage(index + 1)} 
+                                sx={{ margin: '0 5px' }}
+                            >
+                                {index + 1}
+                            </Button>
+                        ))}
+                    </Box>
+                    <IconButton onClick={nextPage} disabled={totalTodos <= currentPage * 10}>
+                        <ArrowForwardIcon />
+                    </IconButton>
+                </Box>
+            )}
             <ConfirmationModal
                 open={isDeleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleDeleteConfirm}
-            />
-            <EditTodoModal
-                currentTodo={currentTodo}
-                setCurrentTodo={setCurrentTodo}
-                open={!!currentTodo}
-                onClose={() => setCurrentTodo(null)}
+                onConfirm={handleDeleteConfirm} 
             />
         </Container>
     );

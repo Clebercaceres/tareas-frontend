@@ -1,52 +1,110 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { TextField, Button, Container, Typography, Link, Grid, Avatar } from '@mui/material';
-import { register } from "../context/services/AuthService"; // Asegúrate de que este servicio haga el llamado correcto a la API
+import { TextField, Button, Container, Typography, Link, Grid, Avatar, IconButton, InputAdornment } from '@mui/material';
+import { notification } from 'antd'; // Importamos las notificaciones
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { register } from "../context/services/AuthService";
 
 const Register = () => {
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [error, setError] = useState(null); // Estado para manejar errores
+    const [username, setUsername] = React.useState("");
+    const [email, setEmail] = React.useState("");
+    const [password, setPassword] = React.useState("");
+    const [confirmPassword, setConfirmPassword] = React.useState("");
+    const [error, setError] = React.useState(null);
+
+    const [usernameError, setUsernameError] = React.useState("");
+    const [emailError, setEmailError] = React.useState("");
+    const [passwordError, setPasswordError] = React.useState("");
+    const [confirmPasswordError, setConfirmPasswordError] = React.useState("");
+
+    const [showPassword, setShowPassword] = React.useState(false);
+
     const avatars = [
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROI--23ZsZB50wGPBSL3U9wV4Gq83t5Xxh-w&s",
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHjodsHsI5i5bMpgVRnQWd2ix1-nnoLK52nw&s"
     ];
-    const [selectedAvatar, setSelectedAvatar] = useState(avatars[0]);
+
+    const [selectedAvatar, setSelectedAvatar] = React.useState(avatars[0]);
     const navigate = useNavigate();
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    const validateUsername = (username) => {
+        return username.length >= 3;
+    };
 
     const handleRegister = async (e) => {
         e.preventDefault();
 
-        if (password !== confirmPassword) {
-            setError("Las contraseñas no coinciden");
+        if (!validateUsername(username)) {
+            setUsernameError("El nombre de usuario debe tener al menos 3 caracteres");
             return;
+        } else {
+            setUsernameError("");
+        }
+
+        if (!validateEmail(email)) {
+            setEmailError("El correo electrónico no es válido");
+            return;
+        } else {
+            setEmailError("");
+        }
+
+        if (password.length < 6) {
+            setPasswordError("La contraseña debe tener al menos 6 caracteres");
+            return;
+        } else {
+            setPasswordError("");
+        }
+
+        if (password !== confirmPassword) {
+            setConfirmPasswordError("Las contraseñas no coinciden");
+            return;
+        } else {
+            setConfirmPasswordError("");
         }
 
         try {
             const response = await register({ username, email, password, confirmPassword, avatar: selectedAvatar });
 
             if (response.data.message === "Usuario registrado exitosamente") {
-                // Limpiar el error
+                notification.success({
+                    message: 'Registro exitoso',
+                    description: 'Te has registrado correctamente. Redirigiendo al inicio de sesión...',
+                });
                 setError(null);
-                // Redirigir al login
                 navigate("/login");
             }
         } catch (err) {
-            // Mostrar el error en la interfaz
             if (err.response && err.response.data.message) {
-                setError(err.response.data.message); // Mostrar el mensaje de error devuelto por el backend
+                setError(err.response.data.message);
+                notification.error({
+                    message: 'Error de registro',
+                    description: err.response.data.message,
+                });
             } else {
                 setError("Error al registrarse. Intente nuevamente.");
+                notification.error({
+                    message: 'Error de registro',
+                    description: 'Error al registrarse. Intente nuevamente.',
+                });
             }
         }
+    };
+
+    const toggleShowPassword = () => {
+        setShowPassword(!showPassword);
     };
 
     return (
         <Container maxWidth="xs">
             <Typography variant="h4" align="center" gutterBottom>Registro</Typography>
             {error && <Typography color="error" align="center">{error}</Typography>}
+
             <form onSubmit={handleRegister}>
                 <TextField
                     label="Nombre de usuario"
@@ -56,7 +114,10 @@ const Register = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    error={!!usernameError}
+                    helperText={usernameError}
                 />
+
                 <TextField
                     label="Correo electrónico"
                     variant="outlined"
@@ -65,27 +126,54 @@ const Register = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    error={!!emailError}
+                    helperText={emailError}
                 />
+
                 <TextField
                     label="Contraseña"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     variant="outlined"
                     fullWidth
                     margin="normal"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    error={!!passwordError}
+                    helperText={passwordError}
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton onClick={toggleShowPassword} edge="end">
+                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                </IconButton>
+                            </InputAdornment>
+                        )
+                    }}
                 />
+
                 <TextField
                     label="Confirmar contraseña"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     variant="outlined"
                     fullWidth
                     margin="normal"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    error={!!confirmPasswordError}
+                    helperText={confirmPasswordError}
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton onClick={toggleShowPassword} edge="end">
+                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                </IconButton>
+                            </InputAdornment>
+                        )
+                    }}
                 />
+
                 <Typography variant="subtitle1" align="center" gutterBottom>Selecciona un avatar:</Typography>
                 <Grid container spacing={0} justifyContent="center" gap="10px" marginBottom="10px">
                     {avatars.map((avatar, index) => (
@@ -101,8 +189,10 @@ const Register = () => {
                         />
                     ))}
                 </Grid>
+
                 <Button type="submit" variant="contained" color="primary" fullWidth>Registrarse</Button>
             </form>
+
             <Typography align="center" marginTop={2}>
                 ¿Ya tienes una cuenta?
                 <Link href="/login" variant="body2" color="primary"> Inicia sesión aquí</Link>
