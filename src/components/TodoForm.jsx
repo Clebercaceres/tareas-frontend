@@ -1,30 +1,27 @@
 import React from 'react';
 import { TodoContext } from './context/TodoContext';
 import { TextField, Button, Grid } from '@mui/material';
-import { v4 as uuidv4 } from 'uuid';
-import { notification } from 'antd'; // Importamos la notificación de Ant Design
+import { notification } from 'antd';
 
 const TodoForm = ({ currentTodo, setCurrentTodo }) => {
     const { addTodo, editTodo } = React.useContext(TodoContext);
     const [todo, setTodo] = React.useState({
-        text: '',
+        title: '',
         description: '',
         category: '',
         priority: '',
         deadline: ''
     });
 
-    // Notificación de éxito
     const openSuccessNotification = (message) => {
         notification.success({
             message: 'Operación Exitosa',
             description: message,
             placement: 'topRight',
-            duration: 3, // Duración de la notificación en segundos
+            duration: 3,
         });
     };
 
-    // Notificación de error
     const openErrorNotification = (message) => {
         notification.error({
             message: 'Error',
@@ -34,51 +31,48 @@ const TodoForm = ({ currentTodo, setCurrentTodo }) => {
         });
     };
 
-    // Efecto para cargar el "todo" actual en el formulario
     React.useEffect(() => {
+        console.log('currentTodo actualizado:', currentTodo);  // Para depurar
         if (currentTodo) {
             setTodo({
-                text: currentTodo.text,
+                title: currentTodo.title,
                 description: currentTodo.description,
                 category: currentTodo.category,
                 priority: currentTodo.priority,
-                deadline: currentTodo.deadline
+                deadline: currentTodo.deadline.split('T')[0]
             });
         } else {
-            setTodo({ text: '', description: '', category: '', priority: '', deadline: '' });
+            setTodo({ title: '', description: '', category: '', priority: '', deadline: '' });
         }
     }, [currentTodo]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
 
-        // Validar campos vacíos
-        if (!todo.text || !todo.description || !todo.category || !todo.priority || !todo.deadline) {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!todo.title || !todo.description || !todo.category || !todo.priority || !todo.deadline) {
             openErrorNotification('Por favor, completa todos los campos');
             return;
         }
 
+        console.log('currentTodo:', currentTodo);  // Verifica el currentTodo
+
         try {
             if (currentTodo) {
-                // Editar tarea
-                editTodo(currentTodo.id, todo);
-                openSuccessNotification('La tarea ha sido editada con éxito'); // Mostrar notificación de éxito
+                await editTodo(currentTodo._id, todo);
+                openSuccessNotification('La tarea ha sido editada con éxito');
             } else {
-                // Agregar nueva tarea
-                const newTodo = { id: uuidv4(), ...todo };
-                addTodo(newTodo);
+                await addTodo(todo);
                 openSuccessNotification('La nueva tarea ha sido añadida con éxito');
             }
 
-            // Limpiar el formulario después de agregar o editar
             setCurrentTodo(null);
-            setTodo({ text: '', description: '', category: '', priority: '', deadline: '' });
-
+            setTodo({ title: '', description: '', category: '', priority: '', deadline: '' });
         } catch (error) {
             openErrorNotification('Hubo un error al guardar la tarea. Intenta nuevamente.');
             console.error('Error al guardar la tarea:', error);
         }
     };
+
 
     return (
         <form onSubmit={handleSubmit}>
@@ -87,8 +81,8 @@ const TodoForm = ({ currentTodo, setCurrentTodo }) => {
                     <TextField
                         fullWidth
                         type="text"
-                        value={todo.text}
-                        onChange={(e) => setTodo({ ...todo, text: e.target.value })}
+                        value={todo.title}
+                        onChange={(e) => setTodo({ ...todo, title: e.target.value })}
                         label="Título de la tarea"
                         required
                     />

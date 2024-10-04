@@ -1,6 +1,16 @@
 import React from 'react';
 import { TodoContext } from './context/TodoContext';
-import { Container, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Typography, Button, Box } from '@mui/material';
+import {
+    Container,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemSecondaryAction,
+    IconButton,
+    Typography,
+    Button,
+    Box,
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -13,7 +23,12 @@ import { notification } from 'antd';
 
 const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
     const {
-        attributes, listeners, setNodeRef, transform, transition, isDragging,
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
     } = useSortable({ id: todo?.id });
 
     return (
@@ -30,8 +45,8 @@ const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
             }}
         >
             <ListItemText
-                primary={todo.text || 'Sin título'}
-                secondary={`Descripción: ${todo.description || 'No disponible'} | Categoría: ${todo.category || 'No disponible'} | Prioridad: ${todo.priority || 'No disponible'} | Fecha límite: ${todo.deadline || 'No disponible'}`}
+                primary={todo?.title || 'Sin título'}
+                secondary={`Descripción: ${todo?.description || 'No disponible'} | Categoría: ${todo?.category || 'No disponible'} | Prioridad: ${todo?.priority || 'No disponible'} | Fecha límite: ${todo.deadline || 'No disponible'}`}
             />
             <ListItemSecondaryAction>
                 <IconButton edge="end" aria-label="edit" onClick={() => handleEdit(todo)}>
@@ -60,10 +75,11 @@ const TodoList = ({ setCurrentTodo }) => {
     };
 
     const handleDeleteConfirm = () => {
-        deleteTodo(todoToDelete.id);
+        deleteTodo(todoToDelete._id); 
         openDeleteNotification();
         setDeleteModalOpen(false);
     };
+    
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
@@ -76,53 +92,50 @@ const TodoList = ({ setCurrentTodo }) => {
         <Container maxWidth="sm" style={{ marginTop: '20px' }}>
             <Typography variant="h5" align="center" gutterBottom>Lista de Tareas</Typography>
             <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={paginatedTodos?.map(todo => todo?.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext items={paginatedTodos?.map(todo => todo?.id) || []} strategy={verticalListSortingStrategy}>
                     <List>
-                        {paginatedTodos?.map((todo) => (
-                            <SortableItem
-                                key={todo.id}
-                                todo={todo}
-                                deleteTodo={() => {
-                                    setTodoToDelete(todo);
-                                    setDeleteModalOpen(true);
-                                }}
-                                handleEdit={() => setCurrentTodo(todo)} 
-                            />
-                        ))}
+                        {paginatedTodos && paginatedTodos?.length > 0 ? (
+                            paginatedTodos.map((todo) => (
+                                <SortableItem
+                                    key={todo.id}
+                                    todo={todo}
+                                    deleteTodo={() => {
+                                        setTodoToDelete(todo);
+                                        setDeleteModalOpen(true);
+                                    }}
+                                    handleEdit={() => setCurrentTodo(todo)}
+                                />
+                            ))
+                        ) : (
+                            <ListItem>
+                                <ListItemText primary="No hay tareas disponibles." />
+                            </ListItem>
+                        )}
                     </List>
                 </SortableContext>
             </DndContext>
 
+            {/* Botones de paginación */}
             {totalTodos > 10 && (
                 <Box display="flex" alignItems="center" justifyContent="space-between" mt={2}>
-                    <IconButton onClick={prevPage} disabled={currentPage === 1}>
-                        <ArrowBackIcon />
-                    </IconButton>
-                    <Box>
-                        {Array.from({ length: Math.ceil(totalTodos / 10) }, (_, index) => (
-                            <Button
-                                key={index + 1}
-                                variant={currentPage === index + 1 ? 'contained' : 'outlined'}
-                                color="primary"
-                                onClick={() => setCurrentPage(index + 1)} 
-                                sx={{ margin: '0 5px' }}
-                            >
-                                {index + 1}
-                            </Button>
-                        ))}
-                    </Box>
-                    <IconButton onClick={nextPage} disabled={totalTodos <= currentPage * 10}>
-                        <ArrowForwardIcon />
-                    </IconButton>
+                    <Button onClick={prevPage} disabled={currentPage === 1} startIcon={<ArrowBackIcon />}>Anterior</Button>
+                    <Typography>{`${currentPage} de ${Math.ceil(totalTodos / 10)}`}</Typography>
+                    <Button onClick={nextPage} disabled={currentPage * 10 >= totalTodos} endIcon={<ArrowForwardIcon />}>Siguiente</Button>
                 </Box>
             )}
+
+            {/* Modal de confirmación */}
             <ConfirmationModal
                 open={isDeleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                onConfirm={handleDeleteConfirm} 
+                onConfirm={handleDeleteConfirm}
+                title="Confirmar eliminación"
+                content={`¿Estás seguro de que deseas eliminar la tarea "${todoToDelete?.title}"?`}
             />
+
         </Container>
     );
 };
 
 export default TodoList;
+

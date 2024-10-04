@@ -176,7 +176,7 @@ const Register = () => {
 
                 <Typography variant="subtitle1" align="center" gutterBottom>Selecciona un avatar:</Typography>
                 <Grid container spacing={0} justifyContent="center" gap="10px" marginBottom="10px">
-                    {avatars.map((avatar, index) => (
+                    {avatars?.map((avatar, index) => (
                         <Avatar
                             key={index}
                             src={avatar}

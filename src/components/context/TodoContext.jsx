@@ -1,91 +1,119 @@
-
 import React from 'react';
+import axios from 'axios';
 
 export const TodoContext = React.createContext();
 
 const TodoProvider = ({ children }) => {
-  const [userData, setUserData] = React.useState(null);
   const [todos, setTodos] = React.useState([]);
   const [currentPage, setCurrentPage] = React.useState(1);
   const todosPerPage = 10;
+  const [paginatedTodos, setPaginatedTodos] = React.useState([]);
 
-  // Agregar nueva tarea
-  const addTodo = (newTodo) => {
-    setTodos([...todos, newTodo]);
+  const storedUserData = localStorage.getItem('userData');
+  const initialUserData = storedUserData ? JSON.parse(storedUserData) : null;
+  const [userData, setUserData] = React.useState(initialUserData);
+
+  // Función para obtener el token de userData o localStorage
+  const getToken = () => {
+    const currentUserData = userData || JSON.parse(localStorage.getItem('userData'));
+    return currentUserData?.token;
   };
 
-  // Editar tarea existente (actualizando todos los campos del todo)
-  const editTodo = (id, updatedTodo) => {
-    const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, ...updatedTodo } : todo
-    );
-    setTodos(updatedTodos);
+  // Cargar tareas desde el backend
+  const loadTodos = async () => {
+    const token = getToken();
+    if (!token) {
+      console.error("El token no está disponible.");
+      return;
+    }
+
+    try {
+      const response = await axios.get('http://localhost:5000/api/auth/usuarioLogeado', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Datos del usuario y tareas:', response.data);
+      setUserData(response.data);
+      setTodos(response.data.tasks || []);
+    } catch (error) {
+      console.error('Error al cargar las tareas:', error);
+    }
   };
 
-  // Eliminar tarea por id
-  const deleteTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+  const addTodo = async (newTodo) => {
+    const token = getToken();
+    if (!token) {
+      console.error("El token no está disponible.");
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/tasks', newTodo, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setTodos([...todos, response.data.task]);
+    } catch (error) {
+      console.error('Error al agregar la tarea:', error);
+    }
   };
 
-  // // Add new task
-  // const addTodo = async (newTodo) => {
-  //   try {
-  //     const response = await createTask(newTodo);
-  //     setTodos([...todos, response.data]);
-  //   } catch (error) {
-  //     console.error('Error creating task:', error);
-  //   }
-  // };
+  // Editar tarea con el token persistente
+  const editTodo = async (_id, updatedTodo) => {
+    const token = getToken();
+    if (!token) {
+      console.error("El token no está disponible.");
+      return;
+    }
 
-  // const createTask = async (newTask) => {
-  //   const response = await api.createTask(newTask);
-  //   if (response.message === "Tarea creada") {
-  //     setTodos(prevTodos => [...prevTodos, response.task]); // Update the list
-  //   }
-  // };
-
-  // // Edit task
-  // const editTodo = async (id, updatedTodo) => {
-  //   try {
-  //     const response = await editTask(id, updatedTodo);
-  //     setTodos(todos.map((todo) => (todo.id === id ? response.data : todo)));
-  //   } catch (error) {
-  //     console.error('Error editing task:', error);
-  //   }
-  // };
-
-  // // Delete task
-  // const deleteTodo = async (id) => {
-  //   try {
-  //     await deleteTask(id);
-  //     setTodos(todos.filter((todo) => todo.id !== id));
-  //   } catch (error) {
-  //     console.error('Error deleting task:', error);
-  //   }
-  // };
-
-
-  // Obtener las tareas paginadas
-  const paginatedTodos = () => {
-    const startIndex = (currentPage - 1) * todosPerPage;
-    return todos.slice(startIndex, startIndex + todosPerPage);
+    try {
+      const response = await axios.put(`http://localhost:5000/api/auth/tasks/${_id}`, updatedTodo, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const updatedTodos = todos.map(todo =>
+        todo._id === _id ? { ...todo, ...response.data.task } : todo
+      );
+      setTodos(updatedTodos);
+    } catch (error) {
+      console.error('Error al editar la tarea:', error);
+    }
   };
 
-  // Navegar a la siguiente página
+  const deleteTodo = async (_id) => {
+    const token = getToken();
+    if (!token) {
+      console.error("El token no está disponible.");
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:5000/api/auth/tasks/${_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setTodos(todos.filter(todo => todo._id !== _id));
+    } catch (error) {
+      console.error('Error al eliminar la tarea:', error);
+    }
+  };
+
   const nextPage = () => {
     if (currentPage * todosPerPage < todos.length) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  // Navegar a la página anterior
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  // Reordenar tareas (para drag-and-drop)
   const reorderTodos = (fromId, toId) => {
     const fromIndex = todos.findIndex(todo => todo.id === fromId);
     const toIndex = todos.findIndex(todo => todo.id === toId);
@@ -98,11 +126,19 @@ const TodoProvider = ({ children }) => {
     }
   };
 
-  // Cargar datos de usuario desde localStorage
+  React.useEffect(() => {
+    const startIndex = (currentPage - 1) * todosPerPage;
+    setPaginatedTodos(todos?.slice(startIndex, startIndex + todosPerPage));
+  }, [todos, currentPage]);
+
   React.useEffect(() => {
     const storedUserData = localStorage.getItem('userData');
     if (storedUserData) {
-      setUserData(JSON.parse(storedUserData));
+      const parsedUserData = JSON.parse(storedUserData);
+      setUserData(parsedUserData);
+      if (parsedUserData?.token) {
+        loadTodos();
+      }
     }
   }, []);
 
@@ -112,15 +148,13 @@ const TodoProvider = ({ children }) => {
     localStorage.removeItem('userData');
   };
 
-
-
   return (
     <TodoContext.Provider
       value={{
         userData,
         setUserData,
         todos,
-        paginatedTodos: paginatedTodos(),
+        paginatedTodos,
         addTodo,
         editTodo,
         deleteTodo,
@@ -128,8 +162,8 @@ const TodoProvider = ({ children }) => {
         nextPage,
         prevPage,
         reorderTodos,
-        totalTodos: todos.length,
-        logout
+        totalTodos: todos?.length,
+        logout,
       }}
     >
       {children}
