@@ -29,7 +29,7 @@ const SortableItem = ({ todo, deleteTodo, handleEdit }) => {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: todo?.id });
+    } = useSortable({ id: todo?._id });
 
     return (
         <ListItem
@@ -75,11 +75,11 @@ const TodoList = ({ setCurrentTodo }) => {
     };
 
     const handleDeleteConfirm = () => {
-        deleteTodo(todoToDelete._id); 
+        deleteTodo(todoToDelete._id);
         openDeleteNotification();
         setDeleteModalOpen(false);
     };
-    
+
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
@@ -92,7 +92,8 @@ const TodoList = ({ setCurrentTodo }) => {
         <Container maxWidth="sm" style={{ marginTop: '20px' }}>
             <Typography variant="h5" align="center" gutterBottom>Lista de Tareas</Typography>
             <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={paginatedTodos?.map(todo => todo?.id) || []} strategy={verticalListSortingStrategy}>
+                <SortableContext items={paginatedTodos?.map(todo => todo?._id) || []} strategy={verticalListSortingStrategy}>
+
                     <List>
                         {paginatedTodos && paginatedTodos?.length > 0 ? (
                             paginatedTodos.map((todo) => (

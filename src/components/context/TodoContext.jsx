@@ -8,6 +8,8 @@ const TodoProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = React.useState(1);
   const todosPerPage = 10;
   const [paginatedTodos, setPaginatedTodos] = React.useState([]);
+  const [deletedTodos, setDeletedTodos] = React.useState([]);
+
 
   const storedUserData = localStorage.getItem('userData');
   const initialUserData = storedUserData ? JSON.parse(storedUserData) : null;
@@ -22,36 +24,39 @@ const TodoProvider = ({ children }) => {
   // Cargar tareas desde el backend
   const loadTodos = async () => {
     const token = getToken();
-    if (!token) {
-      console.error("El token no está disponible.");
-      return;
-    }
+    // if (!token) {
+    // console.error("El token no está disponible.");
+    // return;
+    // }
 
     try {
       const response = await axios.get('http://localhost:5000/api/auth/usuarioLogeado', {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDA1Y2ZlYjhkNzVkMmQ2YWZlMjdiOCIsInVzZXJuYW1lIjoicGFjbyIsImlhdCI6MTcyODE1NzE1MiwiZXhwIjoxNzI4MTYwNzUyfQ.5OKzxMXBocK69R-8e76n_2RlcrSIO6hZqLtW1tbQs6g`,
         },
       });
       console.log('Datos del usuario y tareas:', response.data);
       setUserData(response.data);
       setTodos(response.data.tasks || []);
     } catch (error) {
+
       console.error('Error al cargar las tareas:', error);
     }
   };
 
   const addTodo = async (newTodo) => {
     const token = getToken();
-    if (!token) {
-      console.error("El token no está disponible.");
-      return;
-    }
+    // if (!token) {
+    // console.error("El token no está disponible.");
+    // return;
+    // }
 
     try {
       const response = await axios.post('http://localhost:5000/api/auth/tasks', newTodo, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDA1Y2ZlYjhkNzVkMmQ2YWZlMjdiOCIsInVzZXJuYW1lIjoicGFjbyIsImlhdCI6MTcyODE1NzE1MiwiZXhwIjoxNzI4MTYwNzUyfQ.5OKzxMXBocK69R-8e76n_2RlcrSIO6hZqLtW1tbQs6g`,
         },
       });
       setTodos([...todos, response.data.task]);
@@ -62,43 +67,72 @@ const TodoProvider = ({ children }) => {
 
   // Editar tarea con el token persistente
   const editTodo = async (_id, updatedTodo) => {
+    console.log("edicion", _id);
+    
     const token = getToken();
-    if (!token) {
-      console.error("El token no está disponible.");
-      return;
-    }
+    // if (!token) {
+    // console.error("El token no está disponible.");
+    // return;
+    // }
 
     try {
       const response = await axios.put(`http://localhost:5000/api/auth/tasks/${_id}`, updatedTodo, {
         headers: {
           Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDA1Y2ZlYjhkNzVkMmQ2YWZlMjdiOCIsInVzZXJuYW1lIjoicGFjbyIsImlhdCI6MTcyODE1NzE1MiwiZXhwIjoxNzI4MTYwNzUyfQ.5OKzxMXBocK69R-8e76n_2RlcrSIO6hZqLtW1tbQs6g`,
         },
       });
-      const updatedTodos = todos.map(todo =>
-        todo._id === _id ? { ...todo, ...response.data.task } : todo
-      );
-      setTodos(updatedTodos);
+
+      if (response.status === 200) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo._id === _id ? { ...todo, ...updatedTodo } : todo
+          )
+        );
+
+        console.log('Tarea editada correctamente');
+      }
     } catch (error) {
-      console.error('Error al editar la tarea:', error);
+      console.error('Error al editar la tarea:', error.response?.data || error.message);
     }
   };
 
+
   const deleteTodo = async (_id) => {
     const token = getToken();
-    if (!token) {
-      console.error("El token no está disponible.");
-      return;
-    }
+    // if (!token) {
+    // console.error("El token no está disponible.");
+    // return;
+    // }
 
     try {
       await axios.delete(`http://localhost:5000/api/auth/tasks/${_id}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDA1Y2ZlYjhkNzVkMmQ2YWZlMjdiOCIsInVzZXJuYW1lIjoicGFjbyIsImlhdCI6MTcyODE1NzE1MiwiZXhwIjoxNzI4MTYwNzUyfQ.5OKzxMXBocK69R-8e76n_2RlcrSIO6hZqLtW1tbQs6g`,
+
         },
       });
       setTodos(todos.filter(todo => todo._id !== _id));
     } catch (error) {
       console.error('Error al eliminar la tarea:', error);
+    }
+  };
+
+
+
+
+  const loadDeletedTodos = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/auth/tasks/deleted', {
+        headers: {
+          // Authorization: `Bearer ${token}`,
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDA1Y2ZlYjhkNzVkMmQ2YWZlMjdiOCIsInVzZXJuYW1lIjoicGFjbyIsImlhdCI6MTcyODE1NzE1MiwiZXhwIjoxNzI4MTYwNzUyfQ.5OKzxMXBocK69R-8e76n_2RlcrSIO6hZqLtW1tbQs6g`
+        },
+      });
+      setDeletedTodos(response.data || []);
+    } catch (error) {
+      console.error('Error al cargar las tareas eliminadas:', error);
     }
   };
 
@@ -164,6 +198,9 @@ const TodoProvider = ({ children }) => {
         reorderTodos,
         totalTodos: todos?.length,
         logout,
+        loadDeletedTodos,
+        deletedTodos,
+        setDeletedTodos
       }}
     >
       {children}

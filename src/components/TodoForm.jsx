@@ -49,24 +49,26 @@ const TodoForm = ({ currentTodo, setCurrentTodo }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         if (!todo.title || !todo.description || !todo.category || !todo.priority || !todo.deadline) {
             openErrorNotification('Por favor, completa todos los campos');
             return;
         }
 
-        console.log('currentTodo:', currentTodo);  // Verifica el currentTodo
-
         try {
             if (currentTodo) {
-                await editTodo(currentTodo._id, todo);
+                await editTodo(currentTodo?._id, todo);  // Llamada a la función de edición del contexto
                 openSuccessNotification('La tarea ha sido editada con éxito');
             } else {
-                await addTodo(todo);
+                await addTodo(todo);  // Llamada a la función de agregar tarea
                 openSuccessNotification('La nueva tarea ha sido añadida con éxito');
             }
 
-            setCurrentTodo(null);
+            // Actualiza la lista de tareas antes de limpiar el formulario
             setTodo({ title: '', description: '', category: '', priority: '', deadline: '' });
+
+            // Espera un momento antes de limpiar `currentTodo`
+            setTimeout(() => setCurrentTodo(null), 300);  // Limpia después de un breve retardo
         } catch (error) {
             openErrorNotification('Hubo un error al guardar la tarea. Intenta nuevamente.');
             console.error('Error al guardar la tarea:', error);
